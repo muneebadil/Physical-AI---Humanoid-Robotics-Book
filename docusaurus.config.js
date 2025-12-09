@@ -171,7 +171,7 @@ const config = {
     v4: true,
   },
 
-  url: 'https://your-docusaurus-site.example.com',
+  url: 'https://physical-ai-humanoid-robotics-book-olive.vercel.app',
   baseUrl: '/',
 
   organizationName: 'muneebadil',
