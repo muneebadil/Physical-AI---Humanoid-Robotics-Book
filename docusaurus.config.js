@@ -160,6 +160,39 @@
 
 // @ts-check
 import { themes as prismThemes } from 'prism-react-renderer';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function readDotEnvValue(dotEnvPath, key) {
+  try {
+    const raw = fs.readFileSync(dotEnvPath, 'utf8');
+    const lines = raw.split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const idx = trimmed.indexOf('=');
+      if (idx === -1) continue;
+      const k = trimmed.slice(0, idx).trim();
+      if (k !== key) continue;
+      let v = trimmed.slice(idx + 1).trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1);
+      }
+      return v;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+const geminiApiKey =
+  process.env.GEMINI_API_KEY ?? readDotEnvValue(path.join(__dirname, 'src', '.env'), 'GEMINI_API_KEY');
+const exposedKey = process.env.NODE_ENV === 'production' ? '' : (geminiApiKey ?? '');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -176,6 +209,29 @@ const config = {
 
   organizationName: 'muneebadil',
   projectName: 'physical-ai-humanoid-robotics-book',
+
+  customFields: {
+    geminiApiKey: exposedKey || null,
+  },
+
+  plugins: [
+    function geminiKeyPlugin() {
+      return {
+        name: 'gemini-key-injector',
+        injectHtmlTags() {
+          if (!exposedKey) return {};
+          return {
+            headTags: [
+              {
+                tagName: 'script',
+                innerHTML: `window.__GEMINI_API_KEY__=${JSON.stringify(exposedKey)};`,
+              },
+            ],
+          };
+        },
+      };
+    },
+  ],
 
   // IMPORTANT: No more broken link crashes
   onBrokenLinks: 'throw',
